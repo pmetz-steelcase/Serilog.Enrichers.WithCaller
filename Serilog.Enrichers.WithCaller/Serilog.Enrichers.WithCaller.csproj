@@ -5,13 +5,13 @@
     <Authors>richardburce, 0xced, pmetz-steelcase</Authors>
     <Description>Log message Enrichter, adding caller and code line infos</Description>
     <Copyright>nblumhardt / steelcase / serilog authors</Copyright>
-    <AssemblyVersion>1.2.0.0</AssemblyVersion>
-    <FileVersion>1.2.0.0</FileVersion>
+    <AssemblyVersion>1.3.0.0</AssemblyVersion>
+    <FileVersion>1.3.0.0</FileVersion>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>..\..\..\..\SCSKeyPair.snk</AssemblyOriginatorKeyFile>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-    <Version>1.2.0</Version>
+    <Version>1.3.0</Version>
     <Company>Steelcase</Company>
     <PackageLicenseExpression></PackageLicenseExpression>
     <PackageReleaseNotes>Add option to include file information in the caller property (#1)</PackageReleaseNotes>
