@@ -12,11 +12,24 @@ namespace Serilog.Enrichers.WithCaller
     {
         private readonly bool _includeFileInfo;
         private readonly int _maxDepth;
+        private Predicate<MethodBase> _filter;
+
+        public CallerEnricher()
+            : this(false, 1)
+        {
+            // added default constructor again so one can use the generic Enrich.With<CallerEnricher>() method
+        }
 
         public CallerEnricher(bool? includeFileInfo, int maxDepth)
+            : this(includeFileInfo, maxDepth, method => method.DeclaringType.Assembly == typeof(Log).Assembly)
         {
-            _includeFileInfo = includeFileInfo ?? false;
+        }
+
+        public CallerEnricher(bool? includeFileInfo, int maxDepth, Predicate<MethodBase> filter)
+        {
+            _includeFileInfo = includeFileInfo ?? false;    // Ignored - adjust outputTemplate accordingly
             _maxDepth = Math.Max(1, maxDepth);
+            _filter = filter;
         }
 
         public static int SkipFramesCount { get; set; } = 3;
@@ -38,28 +51,44 @@ namespace Serilog.Enrichers.WithCaller
                 }
 
                 MethodBase method = stack.GetMethod();
-                if (method.DeclaringType.Assembly == typeof(Log).Assembly)
+
+                if (_filter(method))
                 {
                     skipFrames++;
                     continue;
                 }
-
-
-                //else if (method.DeclaringType.Assembly != typeof(Log).Assembly)
 
                 if (foundFrames > 0)
                 {
                     caller.Append(" at ");
                 }
 
-                caller.Append($"{method.DeclaringType.FullName}.{method.Name}({GetParameterFullNames(method.GetParameters())})");
-
-                if (stack.GetFileName() is string fileName)
+                var callerType = $"{method.DeclaringType.FullName}";
+                var callerMethod = $"{method.Name}";
+                if (!(stack.GetFileName() is string callerFileName))
                 {
-                    caller.Append($" {fileName}:{stack.GetFileLineNumber()}");
+                    callerFileName = "";
+                }
+
+                var callerLineNo = stack.GetFileLineNumber();
+                var callerParameters = GetParameterFullNames(method.GetParameters());
+
+                caller.Append($"{callerType}.{callerMethod}({callerParameters})");
+                if (!string.IsNullOrEmpty(callerFileName))
+                {
+                    caller.Append($" {callerFileName}:{callerLineNo}");
                 }
 
                 foundFrames++;
+
+                if (foundFrames == 1)
+                {
+                    logEvent.AddPropertyIfAbsent(new LogEventProperty("CallerType", new ScalarValue(callerType)));
+                    logEvent.AddPropertyIfAbsent(new LogEventProperty("CallerMethod", new ScalarValue(callerMethod)));
+                    logEvent.AddPropertyIfAbsent(new LogEventProperty("CallerParameters", new ScalarValue(callerParameters)));
+                    logEvent.AddPropertyIfAbsent(new LogEventProperty("CallerFileName", new ScalarValue(callerFileName)));
+                    logEvent.AddPropertyIfAbsent(new LogEventProperty("CallerLineNo", new ScalarValue(callerLineNo)));
+                }
 
                 if (_maxDepth <= foundFrames)
                 {
@@ -68,7 +97,6 @@ namespace Serilog.Enrichers.WithCaller
                 }
 
                 skipFrames++;
-
             }
         }
 
