@@ -1,33 +1,49 @@
-﻿using System;
-using System.Reflection;
-using System.Diagnostics;
-
-using Serilog.Core;
+﻿using Serilog.Core;
 using Serilog.Events;
+using System;
+using System.Diagnostics;
+using System.Linq;
+using System.Reflection;
 using System.Text;
 
 namespace Serilog.Enrichers.WithCaller
 {
     public class CallerEnricher : ILogEventEnricher
     {
+        private readonly bool _includeReturnParameter;
+        private readonly bool _includeParameters;
+        private readonly bool _includeParameterNames;
         private readonly bool _includeFileInfo;
+        private readonly bool _useFullTypeName;
         private readonly int _maxDepth;
-        private Predicate<MethodBase> _filter;
+        private readonly Predicate<MethodBase> _filter;
+
+        private static Predicate<MethodBase> _defaultFilter = method => method?.DeclaringType?.Assembly == typeof(Log).Assembly;
 
         public CallerEnricher()
-            : this(false, 1)
+            : this(null, null, null, null, null, 1, _defaultFilter)
         {
             // added default constructor again so one can use the generic Enrich.With<CallerEnricher>() method
         }
 
+        // for backward compatibility with 1.2
         public CallerEnricher(bool? includeFileInfo, int maxDepth)
-            : this(includeFileInfo, maxDepth, method => method.DeclaringType.Assembly == typeof(Log).Assembly)
+            : this(null, null, null, null, includeFileInfo, maxDepth, _defaultFilter)
         {
         }
 
-        public CallerEnricher(bool? includeFileInfo, int maxDepth, Predicate<MethodBase> filter)
+        public CallerEnricher(bool? includeReturnParameter, bool? useFullTypeName, bool? includeParameters, bool? includeParameterNames, bool? includeFileInfo, int maxDepth)
+            : this(includeReturnParameter, useFullTypeName, includeParameters, includeParameterNames, includeFileInfo, maxDepth, _defaultFilter)
         {
-            _includeFileInfo = includeFileInfo ?? false;    // Ignored - adjust outputTemplate accordingly
+        }
+
+        public CallerEnricher(bool? includeReturnParameter, bool? useFullTypeName, bool? includeParameters, bool? includeParameterNames, bool? includeFileInfo, int maxDepth, Predicate<MethodBase> filter)
+        {
+            _includeReturnParameter = includeReturnParameter ?? false;
+            _includeFileInfo = includeFileInfo ?? false;
+            _includeParameters = includeParameters ?? true;
+            _includeParameterNames = _includeParameters && (includeParameterNames ?? false);
+            _useFullTypeName = useFullTypeName ?? true;
             _maxDepth = Math.Max(1, maxDepth);
             _filter = filter;
         }
@@ -40,21 +56,21 @@ namespace Serilog.Enrichers.WithCaller
             int foundFrames = 0;
             StringBuilder caller = new StringBuilder();
 
-            int skipFrames = SkipFramesCount;
-            while (skipFrames < MaxFrameCount)
+            var stackTrace = EnhancedStackTrace.Current();
+
+            var framesToProcess = stackTrace.Take(MaxFrameCount).Skip(SkipFramesCount);
+
+            foreach (var frame in framesToProcess)
             {
-                StackFrame stack = new StackFrame(skipFrames, _includeFileInfo);
-                if (!stack.HasMethod())
+                if (!frame.HasMethod())
                 {
-                    logEvent.AddPropertyIfAbsent(new LogEventProperty("Caller", new ScalarValue("<unknown method>")));
-                    return;
+                    break;
                 }
 
-                MethodBase method = stack.GetMethod();
+                var method = frame.MethodInfo;
 
-                if (_filter(method))
+                if (_filter(method.MethodBase ?? method.SubMethodBase))
                 {
-                    skipFrames++;
                     continue;
                 }
 
@@ -63,54 +79,56 @@ namespace Serilog.Enrichers.WithCaller
                     caller.Append(" at ");
                 }
 
-                var callerType = $"{method.DeclaringType.FullName}";
-                var callerMethod = $"{method.Name}";
-                if (!(stack.GetFileName() is string callerFileName))
+                if (!_includeReturnParameter)
                 {
-                    callerFileName = "";
+                    method.ReturnParameter = null;
+                    method.IsAsync = false; // if we don't want return parameter, then we don't want this either
                 }
 
-                var callerLineNo = stack.GetFileLineNumber();
-                var callerParameters = GetParameterFullNames(method.GetParameters());
-
-                caller.Append($"{callerType}.{callerMethod}({callerParameters})");
-                if (!string.IsNullOrEmpty(callerFileName))
+                if (!_includeParameters)
                 {
-                    caller.Append($" {callerFileName}:{callerLineNo}");
+                    method.Parameters = System.Collections.Generic.Enumerable.EnumerableIList<ResolvedParameter>.Empty;
+                    method.SubMethodParameters = System.Collections.Generic.Enumerable.EnumerableIList<ResolvedParameter>.Empty;
+                }
+                else
+                {
+                    if (!_includeParameterNames)
+                    {
+                        foreach (var param in method.Parameters)
+                        {
+                            param.Name = "";
+                        }
+                        foreach (var param in method.SubMethodParameters)
+                        {
+                            param.Name = "";
+                        }
+                    }
+                }
+
+                method.Append(caller, _useFullTypeName);
+
+                if (_includeFileInfo)
+                {
+                    if ((frame.GetFileName() is string callerFileName))
+                    {
+                        caller.Append($" {callerFileName}:{frame.GetFileLineNumber()}");
+                    }
                 }
 
                 foundFrames++;
 
-                if (foundFrames == 1)
+                if (foundFrames >= _maxDepth)
                 {
-                    logEvent.AddPropertyIfAbsent(new LogEventProperty("CallerType", new ScalarValue(callerType)));
-                    logEvent.AddPropertyIfAbsent(new LogEventProperty("CallerMethod", new ScalarValue(callerMethod)));
-                    logEvent.AddPropertyIfAbsent(new LogEventProperty("CallerParameters", new ScalarValue(callerParameters)));
-                    logEvent.AddPropertyIfAbsent(new LogEventProperty("CallerFileName", new ScalarValue(callerFileName)));
-                    logEvent.AddPropertyIfAbsent(new LogEventProperty("CallerLineNo", new ScalarValue(callerLineNo)));
+                    break;
                 }
-
-                if (_maxDepth <= foundFrames)
-                {
-                    logEvent.AddPropertyIfAbsent(new LogEventProperty("Caller", new ScalarValue(caller.ToString())));
-                    return;
-                }
-
-                skipFrames++;
             }
-        }
-
-        private string GetParameterFullNames(ParameterInfo[] parameterInfos, string separator = ", ")
-        {
-            int len = parameterInfos?.Length ?? 0;
-            var sb = new StringBuilder();
-            for (int i = 0; i < len; i++)
+            if (foundFrames > 0)
             {
-                sb.Append(parameterInfos[i].ParameterType.FullName);
-                if (i < len - 1)
-                    sb.Append(separator);
+                logEvent.AddPropertyIfAbsent(new LogEventProperty("Caller", new ScalarValue(caller.ToString())));
+                return;
             }
-            return sb.ToString();
+            logEvent.AddPropertyIfAbsent(new LogEventProperty("Caller", new ScalarValue("<unknown method>")));
+            return;
         }
     }
 }
