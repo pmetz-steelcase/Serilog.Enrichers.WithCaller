@@ -1,13 +1,50 @@
-# Serilog.Enrichers.WithCaller
+﻿<article>
 
-Performance of this approach is *low* due to Reflection and Diagnostic. However, it's helpful if you need the method Parameters and Values in your log output.
+## Note:
 
-Example OutputTemplate: [{Timestamp:HH:mm:ss} {Level:u3}] {Message} (at {Caller}){NewLine}{Exception}
+Performance of this approach is low due to Reflection and Diagnostic.
+However, it's helpful if you need the method Parameters and Values
 
-* Since version 1.1.0 (thanks to 0xced), supports including file info in caller property
-* Since version 1.2.0 (thanks to Khaos66), supports adding max frame depth of stack 
-* Since version 1.2.1 only polish of code and improved ReadMe
+## Example 
+(see on GitHub ..\Serilog.Enrichers.WithCaller\Serilog.Enrichers.WithCallerDemo project):
 
-### how to use, code example see unit test code
 
-### Note: version 1.3.0 is abandoned (there is no nuget), support for templates is out of the box from Serilog
+```C#
+using Serilog;
+using Serilog.Enrichers.WithCaller;
+
+Log.Logger = new LoggerConfiguration()
+    .Enrich.WithCaller(true)
+    .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message} (at {Caller}){NewLine}{Exception}")
+    .MinimumLevel.Debug()
+    .CreateLogger();
+
+Console.WriteLine("Hello, World!\n");
+Log.Debug("debug");
+Log.Information("information");
+Log.Warning("warning");
+Log.Error(new Exception(), "error");
+
+Console.WriteLine("\n...press enter to close");
+Console.ReadLine();
+```
+```
+Hello, World!
+
+[10:38:57 DBG] debug (at Program.<Main>$(System.String[]) C:\Source\Github\pmetz-steelcase\Serilog.Enrichers.WithCaller\Serilog.Enrichers.WithCallerDemo\Program.cs:13)
+[10:38:58 INF] information (at Program.<Main>$(System.String[]) C:\Source\Github\pmetz-steelcase\Serilog.Enrichers.WithCaller\Serilog.Enrichers.WithCallerDemo\Program.cs:14)
+[10:38:59 WRN] warning (at Program.<Main>$(System.String[]) C:\Source\Github\pmetz-steelcase\Serilog.Enrichers.WithCaller\Serilog.Enrichers.WithCallerDemo\Program.cs:15)
+[10:39:00 ERR] error (at Program.<Main>$(System.String[]) C:\Source\Github\pmetz-steelcase\Serilog.Enrichers.WithCaller\Serilog.Enrichers.WithCallerDemo\Program.cs:16)
+System.Exception: Exception of type 'System.Exception' was thrown.
+
+...press enter to close
+
+```
+
+
+--------------------------------------------------------------------------------------------------------------
+<br/>
+
+### Note: 
+version 1.3.0 is abandoned (there is no nuget), support for templates is out of the box from Serilog
+</article>
