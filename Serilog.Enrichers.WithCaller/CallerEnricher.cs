@@ -25,12 +25,14 @@ namespace Serilog.Enrichers.WithCaller
         public void Enrich(LogEvent logEvent, ILogEventPropertyFactory propertyFactory)
         {
             int foundFrames = 0;
+            int skipFrames = SkipFramesCount;
             StringBuilder caller = new StringBuilder();
 
-            int skipFrames = SkipFramesCount;
             while (skipFrames < MaxFrameCount)
             {
                 StackFrame stack = new StackFrame(skipFrames, _includeFileInfo);
+                skipFrames++;
+
                 if (!stack.HasMethod())
                 {
                     logEvent.AddPropertyIfAbsent(new LogEventProperty("Caller", new ScalarValue("<unknown method>")));
@@ -39,40 +41,25 @@ namespace Serilog.Enrichers.WithCaller
 
                 MethodBase method = stack.GetMethod();
                 if (method.DeclaringType.Assembly == typeof(Log).Assembly)
-                {
-                    skipFrames++;
                     continue;
-                }
-
-
-                //else if (method.DeclaringType.Assembly != typeof(Log).Assembly)
-
-                if (foundFrames > 0)
-                {
-                    caller.Append(" at ");
-                }
+                
+                if (0 < foundFrames) caller.Append(" at ");
 
                 caller.Append($"{method.DeclaringType.FullName}.{method.Name}({GetParameterFullNames(method.GetParameters())})");
 
                 if (stack.GetFileName() is string fileName)
-                {
                     caller.Append($" {fileName}:{stack.GetFileLineNumber()}");
-                }
 
                 foundFrames++;
-
                 if (_maxDepth <= foundFrames)
                 {
                     logEvent.AddPropertyIfAbsent(new LogEventProperty("Caller", new ScalarValue(caller.ToString())));
                     return;
                 }
-
-                skipFrames++;
-
             }
         }
 
-        private string GetParameterFullNames(ParameterInfo[] parameterInfos, string separator = ", ")
+        private StringBuilder GetParameterFullNames(ParameterInfo[] parameterInfos, string separator = ", ")
         {
             int len = parameterInfos?.Length ?? 0;
             var sb = new StringBuilder();
@@ -82,7 +69,7 @@ namespace Serilog.Enrichers.WithCaller
                 if (i < len - 1)
                     sb.Append(separator);
             }
-            return sb.ToString();
+            return sb;
         }
     }
 }

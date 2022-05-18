@@ -1,11 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.31613.86
+# Visual Studio Version 17
+VisualStudioVersion = 17.1.32421.90
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Serilog.Enrichers.WithCaller", ".\Serilog.Enrichers.WithCaller\Serilog.Enrichers.WithCaller.csproj", "{A0EC9FDC-7DD3-4182-8776-DA09DE965170}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Serilog.Enrichers.WithCaller", "Serilog.Enrichers.WithCaller\Serilog.Enrichers.WithCaller.csproj", "{A0EC9FDC-7DD3-4182-8776-DA09DE965170}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Serilog.Enrichers.WithCallerTests", ".\Serilog.Enrichers.WithCallerTests\Serilog.Enrichers.WithCallerTests.csproj", "{4DD4DF11-6C71-41F2-9710-BB8148BD2EBF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Serilog.Enrichers.WithCallerTests", "Serilog.Enrichers.WithCallerTests\Serilog.Enrichers.WithCallerTests.csproj", "{4DD4DF11-6C71-41F2-9710-BB8148BD2EBF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Serilog.Enrichers.WithCallerDemo", "Serilog.Enrichers.WithCallerDemo\Serilog.Enrichers.WithCallerDemo.csproj", "{0BC1E506-8EF3-4DBC-B8A0-204F7EB9AB47}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -20,6 +22,10 @@ Global
 		{4DD4DF11-6C71-41F2-9710-BB8148BD2EBF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{4DD4DF11-6C71-41F2-9710-BB8148BD2EBF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4DD4DF11-6C71-41F2-9710-BB8148BD2EBF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0BC1E506-8EF3-4DBC-B8A0-204F7EB9AB47}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0BC1E506-8EF3-4DBC-B8A0-204F7EB9AB47}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0BC1E506-8EF3-4DBC-B8A0-204F7EB9AB47}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0BC1E506-8EF3-4DBC-B8A0-204F7EB9AB47}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
