@@ -43,8 +43,6 @@ namespace Serilog.Enrichers.WithCaller
                     skipFrames++;
                     continue;
                 }
-
-
                 //else if (method.DeclaringType.Assembly != typeof(Log).Assembly)
 
                 if (foundFrames > 0)
@@ -68,7 +66,6 @@ namespace Serilog.Enrichers.WithCaller
                 }
 
                 skipFrames++;
-
             }
         }
 
