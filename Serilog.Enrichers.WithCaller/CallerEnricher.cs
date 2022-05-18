@@ -112,6 +112,9 @@ namespace Serilog.Enrichers.WithCaller
                     if ((frame.GetFileName() is string callerFileName))
                     {
                         caller.Append($" {callerFileName}:{frame.GetFileLineNumber()}");
+                        logEvent.AddPropertyIfAbsent(new LogEventProperty("CallerLineNo",   new ScalarValue(frame.GetFileLineNumber())));
+                        logEvent.AddPropertyIfAbsent(new LogEventProperty("CallerFileName", new ScalarValue(Path.GetFileName(callerFileName))));
+                    }
                     }
                 }
 
